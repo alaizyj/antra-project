@@ -1,0 +1,107 @@
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: sans-serif;
+}
+
+
+/* class names, BEM style name__btn--attribute */
+
+#app {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.tablehead tr {
+    background-color: transparent;
+}
+
+.addBtn {
+    color: white;
+    font-weight: bold;
+    padding: 1rem;
+    border: none;
+    background-color: #008cba;
+    margin: 2rem auto;
+    cursor: pointer;
+}
+
+table {
+    border: 3px solid #e6e2d3;
+    width: 60%;
+}
+
+tr {
+    padding: 0.5rem;
+    background-color: #e6e2d3;
+    border: 1px;
+    height: 50px;
+}
+
+td {
+    text-align: center;
+}
+
+input {
+    width: 100%;
+    height: 50px;
+}
+
+.editBtn,
+.saveBtn,
+.addBtn__event {
+    width: 40px;
+    height: 40px;
+    background-color: #008cba;
+    color: white;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+}
+
+.buttons {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+}
+
+.deleteBtn,
+.cancelEditBtn,
+.cancelAddBtn {
+    width: 40px;
+    height: 40px;
+    margin-left: 1rem;
+    background-color: red;
+    color: white;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+}
+
+.deleteBtn svg {
+    height: 30px;
+    width: 30px;
+    fill: white;
+}
+
+.editBtn svg {
+    height: 30px;
+    width: 30px;
+    fill: white;
+}
+
+svg:hover {
+    fill: black;
+}
+
+svg {
+    height: 30px;
+    width: 30px;
+    fill: white;
+    pointer-events: none;
+}
