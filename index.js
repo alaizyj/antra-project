@@ -81,7 +81,9 @@ class eventModel {
 
     addEvent(event) {
         return API.postEvent(event).then((addedEvent) => {
+            // console.log(addedEvent);
             const id = addedEvent['id'];
+            addedEvent['status'] = 'none';
             this._events[id] = addedEvent;
             return addedEvent;
         });
@@ -89,12 +91,15 @@ class eventModel {
 
     removeEvent(id) {
         return API.removeEvent(id).then((removedTodo) => {
+            delete this._events[id];
             return removedTodo;
         });
     }
 
     editEvent(id, newEvent) {
         return API.updateEvent(id, newEvent).then((editedEvent) => {
+            editedEvent['status'] = 'none';
+            this._events[id] = editedEvent;
             return editedEvent;
         });
     }
@@ -104,9 +109,10 @@ class eventView {
     constructor() {
         this.tableBody = document.querySelector('.table__body');
         this.addBtn = document.querySelector('.addBtn');
-        this.tableBody.addEventListener('submit', (e) => {
-            e.preventDefault();
-        });
+        this.errorMessage = document.querySelector('.error__message');
+        // this.tableBody.addEventListener('submit', (e) => {
+        //     e.preventDefault();
+        // });
     }
 
     renderEvents(events) {
@@ -141,9 +147,9 @@ class eventView {
         if (event['status'] === 'edit') {
             return `
             <tr id=${idAttribute}>
-            <td><input type='text' value=${event['eventName']} class='title-input'  required/></td>
-            <td><input type='date' value=${event['startDate']} class='startdate-input' required/></td>
-            <td><input type='date' value=${event['endDate']} class='enddate-input' required /></td>
+            <td><input type='text' value="${event['eventName']}" class='title-input'  required/></td>
+            <td><input type='date' value="${event['startDate']}" class='startdate-input' required/></td>
+            <td><input type='date' value="${event['endDate']}" class='enddate-input' required /></td>
             <td><div class='buttons'>
             <button data-id=${id} class='saveBtn'><svg focusable="false" aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M21,20V8.414a1,1,0,0,0-.293-.707L16.293,3.293A1,1,0,0,0,15.586,3H4A1,1,0,0,0,3,4V20a1,1,0,0,0,1,1H20A1,1,0,0,0,21,20ZM9,8h4a1,1,0,0,1,0,2H9A1,1,0,0,1,9,8Zm7,11H8V15a1,1,0,0,1,1-1h6a1,1,0,0,1,1,1Z"/></svg></button>
             <button data-id=${id} class='cancelEditBtn'><svg focusable="false" aria-hidden="true" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg"><path d="M19.587 16.001l6.096 6.096c0.396 0.396 0.396 1.039 0 1.435l-2.151 2.151c-0.396 0.396-1.038 0.396-1.435 0l-6.097-6.096-6.097 6.096c-0.396 0.396-1.038 0.396-1.434 0l-2.152-2.151c-0.396-0.396-0.396-1.038 0-1.435l6.097-6.096-6.097-6.097c-0.396-0.396-0.396-1.039 0-1.435l2.153-2.151c0.396-0.396 1.038-0.396 1.434 0l6.096 6.097 6.097-6.097c0.396-0.396 1.038-0.396 1.435 0l2.151 2.152c0.396 0.396 0.396 1.038 0 1.435l-6.096 6.096z"></path></svg></button>
@@ -155,7 +161,6 @@ class eventView {
 
     deleteEvent(id) {
         const eventEl = document.querySelector(`#row${id}`);
-        console.log(eventEl);
         eventEl.remove();
     }
 
@@ -163,9 +168,9 @@ class eventView {
         var tbody = document.getElementsByTagName('tbody')[0];
         const newRow = `
         <tr >
-        <td><input type='text' class='title-input'} required /></td>
-        <td><input type='date' class='startdate-input' } required /></td>
-        <td><input type='date' class='enddate-input' } required /></td>
+        <td><input type='text' class='title-input' required /></td>
+        <td><input type='date' class='startdate-input'  required /></td>
+        <td><input type='date' class='enddate-input' required /></td>
         <td><div class='buttons'>
         <button  class='addBtn__event'><svg focusable viewBox="0 0 24 24" aria-hidden="true xmlns="http://www.w3.org/2000/svg"><path d="M12 6V18M18 12H6" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <button  class='cancelAddBtn'><svg focusable="false" aria-hidden="true" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg"><path d="M19.587 16.001l6.096 6.096c0.396 0.396 0.396 1.039 0 1.435l-2.151 2.151c-0.396 0.396-1.038 0.396-1.435 0l-6.097-6.096-6.097 6.096c-0.396 0.396-1.038 0.396-1.434 0l-2.152-2.151c-0.396-0.396-0.396-1.038 0-1.435l6.097-6.096-6.097-6.097c-0.396-0.396-0.396-1.039 0-1.435l2.153-2.151c0.396-0.396 1.038-0.396 1.434 0l6.096 6.097 6.097-6.097c0.396-0.396 1.038-0.396 1.435 0l2.151 2.152c0.396 0.396 0.396 1.038 0 1.435l-6.096 6.096z"></path></svg></button>
@@ -187,7 +192,6 @@ class eventController {
             this.view.renderEvents(result);
         });
         this.setUpEvents();
-        //this.view.renderEvents(this.model._events);
     }
 
     setUpEvents() {
@@ -215,11 +219,9 @@ class eventController {
     setUpEditEvent() {
         this.view.tableBody.addEventListener('click', (e) => {
             if (e.target.classList.contains('editBtn')) {
-                console.log('edit clicked');
                 const id = e.target.dataset.id;
-                console.log(id);
-                this.model.updateEvent(id, 'edit');
 
+                this.model.updateEvent(id, 'edit');
                 this.view.renderEvents(this.model._events);
             }
         });
@@ -229,7 +231,7 @@ class eventController {
         this.view.tableBody.addEventListener('click', (e) => {
             if (e.target.classList.contains('cancelEditBtn')) {
                 const id = e.target.dataset.id;
-                console.log(id);
+
                 this.model.updateEvent(id, 'none');
                 this.view.renderEvents(this.model._events);
             }
@@ -259,6 +261,12 @@ class eventController {
                 const eventName = document.querySelector('.title-input').value;
                 const startDate = document.querySelector('.startdate-input').value;
                 const endDate = document.querySelector('.enddate-input').value;
+                const code = this.validate(eventName, startDate, endDate);
+
+                this.handleError(code);
+                if (code != 0) {
+                    return;
+                }
 
                 this.model
                     .addEvent({
@@ -267,8 +275,6 @@ class eventController {
                         endDate,
                     })
                     .then((data) => {
-                        console.log('haha');
-                        console.log(this.model._events);
                         this.view.renderEvents(this.model._events);
                     });
             }
@@ -278,11 +284,16 @@ class eventController {
     setUpSaveEvent() {
         this.view.tableBody.addEventListener('click', (e) => {
             if (e.target.classList.contains('saveBtn')) {
-                e.preventDefault();
                 const id = e.target.dataset.id;
                 const eventName = document.querySelector('.title-input').value;
                 const startDate = document.querySelector('.startdate-input').value;
                 const endDate = document.querySelector('.enddate-input').value;
+
+                const code = this.validate(eventName, startDate, endDate);
+                this.handleError(code);
+                if (code != 0) {
+                    return;
+                }
 
                 this.model
                     .editEvent(id, {
@@ -291,12 +302,37 @@ class eventController {
                         endDate,
                     })
                     .then((data) => {
-                        this.model._events[id] = data;
-
                         this.view.renderEvents(this.model._events);
                     });
             }
         });
+    }
+
+    validate(title, start, end) {
+        if (!title || !start || !end) {
+            return 2;
+        }
+        if (!/^[A-Za-z0-9]*$/.test(title)) {
+            return 1;
+        }
+        return 0;
+    }
+
+    handleError(errorCode) {
+        if (errorCode === 1) {
+            this.view.errorMessage.textContent =
+                'Event Name should consist of only letters and digits!';
+            return;
+        }
+
+        if (errorCode === 2) {
+            this.view.errorMessage.textContent = 'Input fields cannot be empty!';
+            return;
+        }
+        if (errorCode === 0) {
+            this.view.errorMessage.textContent = '';
+            return;
+        }
     }
 }
 
