@@ -46,91 +46,103 @@ const API = (() => {
 class eventModel {
     //all data
     _events;
+    _info;
+    _onAdd;
+    _ascend;
     constructor() {
-        this._events = {};
+        this._events = [];
+        this._info = {};
+        this._onAdd = false;
+        this._ascend = false;
     }
 
     setEvents(events) {
         this._events = events;
     }
 
+    setInfo(info) {
+        this._info = info;
+    }
+
     getEvents() {
         return this._events;
     }
+    getInfo() {
+        return this._info;
+    }
 
-    updateEvent(id, status) {
-        this._events[id]['status'] = status;
+    updateInfo(id, status) {
+        this._info[id] = status;
+    }
+
+    deleteEvents(id) {
+        const filterArray = this._events.filter((event) => event.id != id);
+        this.setEvents(filterArray);
+        delete this._info[id];
     }
 
     fetchEvents() {
         return API.getEvents()
             .then((events) => {
-                const result = {};
                 for (let i = 0; i < events.length; i++) {
-                    const event = events[i];
                     const id = events[i]['id'];
-                    const status = 'status';
-                    event[status] = 'none';
-                    result[id] = event;
+                    this._info[id] = 'none';
                 }
-                this.setEvents(result);
-                return result;
+                this.setEvents(events);
+                return events;
             })
             .catch((err) => console.log(err));
     }
 
     addEvent(event) {
         return API.postEvent(event).then((addedEvent) => {
-            // console.log(addedEvent);
             const id = addedEvent['id'];
-            addedEvent['status'] = 'none';
-            this._events[id] = addedEvent;
+            this.updateInfo(id, 'none');
+            this._events.push(addedEvent);
             return addedEvent;
         });
     }
 
     removeEvent(id) {
         return API.removeEvent(id).then((removedTodo) => {
-            delete this._events[id];
+            this.deleteEvents(removedTodo.id);
             return removedTodo;
         });
     }
 
     editEvent(id, newEvent) {
         return API.updateEvent(id, newEvent).then((editedEvent) => {
-            editedEvent['status'] = 'none';
-            this._events[id] = editedEvent;
+            this.deleteEvents(id);
+            this._events.push(editedEvent);
+            this.updateInfo(id, 'none');
             return editedEvent;
         });
     }
 }
 class eventView {
-    //all dom elements
     constructor() {
         this.tableBody = document.querySelector('.table__body');
         this.addBtn = document.querySelector('.addBtn');
         this.errorMessage = document.querySelector('.error__message');
-        // this.tableBody.addEventListener('submit', (e) => {
-        //     e.preventDefault();
-        // });
+        this.sortBtn = document.querySelector('#startdate');
     }
 
-    renderEvents(events) {
+    renderEvents(events, info) {
         const eventsHTML =
-            Object.keys(events).length === 0 ?
+            events.length === 0 ?
             `<p class="empty-message">No events, try send one!</p>` :
-            Object.keys(events)
-            .map((key) => {
-                return this.renderEvent(events[key]);
+            events
+            .map((event) => {
+                return this.renderEvent(event, info);
             })
             .join('');
         this.tableBody.innerHTML = eventsHTML;
     }
 
-    renderEvent(event) {
+    renderEvent(event, info) {
         const id = event['id'];
         const idAttribute = 'row' + id;
-        if (event['status'] === 'none') {
+        if (info[id] === 'none') {
             return `
 <tr id=${idAttribute}>
 <td>${event['eventName']}</td>
@@ -144,7 +156,7 @@ class eventView {
 `;
         }
 
-        if (event['status'] === 'edit') {
+        if (info[id] === 'edit') {
             return `
             <tr id=${idAttribute}>
             <td><input type='text' value="${event['eventName']}" class='title-input'  required/></td>
@@ -189,21 +201,21 @@ class eventController {
 
     initialize() {
         this.model.fetchEvents().then((result) => {
-            this.view.renderEvents(result);
+            this.view.renderEvents(result, this.model._info);
         });
         this.setUpEvents();
     }
 
     setUpEvents() {
-            this.setUpDeleteEvent();
-            this.setUpEditEvent();
-            this.setUpCancelEditEvent();
-            this.setUpAdd();
-            this.setUpCancelAddEvent();
-            this.setUpAddEvent();
-            this.setUpSaveEvent();
-        }
-        //all event listeners
+        this.setUpDeleteEvent();
+        this.setUpEditEvent();
+        this.setUpCancelEditEvent();
+        this.setUpAdd();
+        this.setUpCancelAddEvent();
+        this.setUpAddEvent();
+        this.setUpSaveEvent();
+        this.setUpSort();
+    }
 
     setUpDeleteEvent() {
         this.view.tableBody.addEventListener('click', (e) => {
@@ -220,9 +232,8 @@ class eventController {
         this.view.tableBody.addEventListener('click', (e) => {
             if (e.target.classList.contains('editBtn')) {
                 const id = e.target.dataset.id;
-
-                this.model.updateEvent(id, 'edit');
-                this.view.renderEvents(this.model._events);
+                this.model.updateInfo(id, 'edit');
+                this.view.renderEvents(this.model._events, this.model._info);
             }
         });
     }
@@ -232,8 +243,8 @@ class eventController {
             if (e.target.classList.contains('cancelEditBtn')) {
                 const id = e.target.dataset.id;
 
-                this.model.updateEvent(id, 'none');
-                this.view.renderEvents(this.model._events);
+                this.model.updateInfo(id, 'none');
+                this.view.renderEvents(this.model._events, this.model._info);
             }
         });
     }
@@ -241,7 +252,12 @@ class eventController {
     setUpAdd() {
         this.view.addBtn.addEventListener('click', (e) => {
             if (e.target.classList.contains('addBtn')) {
-                this.view.addEventView();
+                if (this.model._onAdd) {
+                    return;
+                } else {
+                    this.model._onAdd = true;
+                    this.view.addEventView();
+                }
             }
         });
     }
@@ -249,8 +265,9 @@ class eventController {
     setUpCancelAddEvent() {
         this.view.tableBody.addEventListener('click', (e) => {
             if (e.target.classList.contains('cancelAddBtn')) {
+                this.model._onAdd = false;
                 e.preventDefault();
-                this.view.renderEvents(this.model._events);
+                this.view.renderEvents(this.model._events, this.model._info);
             }
         });
     }
@@ -275,7 +292,8 @@ class eventController {
                         endDate,
                     })
                     .then((data) => {
-                        this.view.renderEvents(this.model._events);
+                        this.model._onAdd = false;
+                        this.view.renderEvents(this.model._events, this.model._info);
                     });
             }
         });
@@ -302,9 +320,25 @@ class eventController {
                         endDate,
                     })
                     .then((data) => {
-                        this.view.renderEvents(this.model._events);
+                        this.view.renderEvents(this.model._events, this.model._info);
                     });
             }
+        });
+    }
+
+    setUpSort() {
+        this.view.sortBtn.addEventListener('click', (e) => {
+            if (!this.model._ascend) {
+                this.model._events.sort(
+                    (a, b) => new Date(a.startDate) - new Date(b.startDate)
+                );
+            } else {
+                this.model._events.sort(
+                    (a, b) => new Date(b.startDate) - new Date(a.startDate)
+                );
+            }
+            this.model._ascend = !this.model._ascend;
+            this.view.renderEvents(this.model._events, this.model._info);
         });
     }
 
@@ -314,6 +348,9 @@ class eventController {
         }
         if (!/^[A-Za-z0-9]*$/.test(title)) {
             return 1;
+        }
+        if (start >= end) {
+            return 3;
         }
         return 0;
     }
@@ -327,6 +364,11 @@ class eventController {
 
         if (errorCode === 2) {
             this.view.errorMessage.textContent = 'Input fields cannot be empty!';
+            return;
+        }
+        if (errorCode === 3) {
+            this.view.errorMessage.textContent =
+                'Start date should not come after end date!';
             return;
         }
         if (errorCode === 0) {

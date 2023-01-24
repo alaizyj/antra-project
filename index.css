@@ -16,6 +16,10 @@
     align-items: center;
 }
 
+#startdate {
+    cursor: pointer;
+}
+
 .tablehead tr {
     background-color: transparent;
 }
